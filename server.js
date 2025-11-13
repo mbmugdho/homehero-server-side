@@ -1,47 +1,64 @@
-const express = require('express');
-const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
-require('dotenv').config();
+const express = require('express')
+const cors = require('cors')
+const { MongoClient, ServerApiVersion } = require('mongodb')
+require('dotenv').config()
 
-const app = express();
-const port = process.env.PORT || 5000;
+const app = express()
+const port = process.env.PORT || 5000
 
-app.use(cors());
-app.use(express.json());
+app.use(cors())
+app.use(express.json())
 
-const uri = process.env.MONGO_URI;
+const uri = process.env.MONGO_URI
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
   },
-});
+})
 
 async function run() {
   try {
+    await client.connect()
+    console.log(' MongoDB connected successfully')
 
-    await client.connect();
-    console.log(' MongoDB connected successfully');
-
-    const db = client.db('homeheroDB');
-    const servicesCollection = db.collection('services');
+    const db = client.db('homeheroDB')
+    const servicesCollection = db.collection('services')
 
     app.get('/', (req, res) => {
-      res.send('HomeHero Server is running...');
-    });
+      res.send('HomeHero Server is running...')
+    })
 
     app.get('/services', async (req, res) => {
-      const services = await servicesCollection.find().toArray();
-      res.send(services);
-    });
+      const services = await servicesCollection.find().toArray()
+      res.send(services)
+    })
+
+    app.post('/services', async (req, res) => {
+      try {
+        const service = req.body
+
+        if (!service.title || !service.category || !service.price) {
+          return res
+            .status(400)
+            .send({ error: 'Title, category, and price are required.' })
+        }
+
+        const result = await servicesCollection.insertOne(service)
+        res.status(201).send(result) 
+      } catch (error) {
+        console.error(error)
+        res.status(500).send({ error: 'Failed to add service.' })
+      }
+    })
 
     app.listen(port, () => {
-      console.log(`Server running on port ${port}`);
-    });
+      console.log(`Server running on port ${port}`)
+    })
   } catch (error) {
-    console.error(error);
+    console.error(error)
   }
 }
 
-run().catch(console.dir);
+run().catch(console.dir)
