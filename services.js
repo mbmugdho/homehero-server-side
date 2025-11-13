@@ -14,16 +14,16 @@ const client = new MongoClient(uri, {
 async function services() {
   try {
     await client.connect()
-    console.log('✅ Connected to MongoDB')
+    console.log('Connected to MongoDB')
 
     const db = client.db('homeheroDB')
     const servicesCollection = db.collection('services')
 
     await servicesCollection.deleteMany({})
-    console.log('🗑️ Cleared old services')
+    console.log('Cleared old services')
 
     const result = await servicesCollection.insertMany(servicesData)
-    console.log(`✅ Inserted ${result.insertedCount} services`)
+    console.log(`Inserted ${result.insertedCount} services`)
   } catch (err) {
     console.error(err)
   } finally {

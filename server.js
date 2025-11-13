@@ -26,6 +26,10 @@ async function run() {
     const db = client.db('homeheroDB')
     const servicesCollection = db.collection('services')
 
+    await servicesCollection.createIndex({ rating: -1 })
+    await servicesCollection.createIndex({ hourly_rate: -1 })
+    console.log('Indexes created for services')
+
     app.get('/', (req, res) => {
       res.send('HomeHero Server is running...')
     })
@@ -65,11 +69,24 @@ async function run() {
     app.post('/services', async (req, res) => {
       try {
         const service = req.body
+        console.log('POST /services body:', service) 
 
-        if (!service.title || !service.category || !service.price) {
+        const { title, category, hourly_rate } = service
+        if (
+          !title ||
+          !category ||
+          hourly_rate === undefined ||
+          hourly_rate === null
+        ) {
           return res
             .status(400)
-            .send({ error: 'Title, category, and price are required.' })
+            .send({ error: 'Title, category, and hourly_rate are required.' })
+        }
+
+        if (typeof hourly_rate !== 'number') {
+          return res
+            .status(400)
+            .send({ error: 'hourly_rate must be a number.' })
         }
 
         const result = await servicesCollection.insertOne(service)
@@ -79,6 +96,9 @@ async function run() {
         res.status(500).send({ error: 'Failed to add service.' })
       }
     })
+
+
+    
 
     app.listen(port, () => {
       console.log(`Server running on port ${port}`)
