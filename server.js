@@ -31,8 +31,35 @@ async function run() {
     })
 
     app.get('/services', async (req, res) => {
-      const services = await servicesCollection.find().toArray()
-      res.send(services)
+      try {
+        const { search, sort } = req.query
+
+        let query = {}
+
+        if (search) {
+          query = {
+            $or: [
+              { title: { $regex: search, $options: 'i' } },
+              { category: { $regex: search, $options: 'i' } },
+            ],
+          }
+        }
+
+        let cursor = servicesCollection.find(query)
+
+        if (sort) {
+          let sortField = 'rating'
+          if (sort.toLowerCase() === 'price') sortField = 'hourly_rate'
+          cursor = cursor.sort({ [sortField]: -1 })
+        }
+
+        const services = await cursor.toArray()
+
+        res.status(200).send(services)
+      } catch (error) {
+        console.error(error)
+        res.status(500).send({ error: 'Failed to fetch services' })
+      }
     })
 
     app.post('/services', async (req, res) => {
@@ -46,7 +73,7 @@ async function run() {
         }
 
         const result = await servicesCollection.insertOne(service)
-        res.status(201).send(result) 
+        res.status(201).send(result)
       } catch (error) {
         console.error(error)
         res.status(500).send({ error: 'Failed to add service.' })
