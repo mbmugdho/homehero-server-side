@@ -157,6 +157,106 @@ async function run() {
       }
     })
 
+    app.patch('/services/:id', async (req, res) => {
+      try {
+        const { id } = req.params
+        const { uid, userEmail } = req.body || {}
+        let svc = null
+        let filter = null
+        if (ObjectId.isValid(id)) {
+          svc = await servicesCollection.findOne({ _id: new ObjectId(id) })
+          filter = { _id: new ObjectId(id) }
+        }
+        if (!svc) {
+          svc = await servicesCollection.findOne({ id })
+          filter = { id }
+        }
+        if (!svc) return res.status(404).json({ error: 'Service not found' })
+
+        let ownerOk = true
+        if (svc.uid) ownerOk = uid && String(uid) === String(svc.uid)
+        if (!svc.uid && svc.providerEmail)
+          ownerOk =
+            userEmail &&
+            String(userEmail).toLowerCase() ===
+              String(svc.providerEmail).toLowerCase()
+        if (!ownerOk) return res.status(403).json({ error: 'Not allowed' })
+
+        const body = req.body || {}
+        const up = {}
+        if (Object.prototype.hasOwnProperty.call(body, 'title'))
+          up.title = body.title
+        if (Object.prototype.hasOwnProperty.call(body, 'category'))
+          up.category = body.category
+        if (Object.prototype.hasOwnProperty.call(body, 'hourly_rate')) {
+          if (typeof body.hourly_rate !== 'number')
+            return res
+              .status(400)
+              .json({ error: 'hourly_rate must be a number' })
+          up.hourly_rate = body.hourly_rate
+        }
+        if (Object.prototype.hasOwnProperty.call(body, 'description'))
+          up.description = body.description
+        if (Object.prototype.hasOwnProperty.call(body, 'image'))
+          up.image = body.image
+        if (Object.prototype.hasOwnProperty.call(body, 'duration'))
+          up.duration = body.duration
+        if (Object.prototype.hasOwnProperty.call(body, 'location'))
+          up.location = body.location
+        if (Object.prototype.hasOwnProperty.call(body, 'featured'))
+          up.featured = !!body.featured
+
+        if (!Object.keys(up).length)
+          return res.status(400).json({ error: 'No editable fields provided' })
+
+        await servicesCollection.updateOne(filter, {
+          $set: { ...up, updatedAt: new Date() },
+        })
+        const updated = await servicesCollection.findOne(filter)
+        res.status(200).json(updated)
+      } catch {
+        res.status(500).json({ error: 'Failed to update service' })
+      }
+    })
+
+    app.delete('/services/:id', async (req, res) => {
+      try {
+        const { id } = req.params
+        const q = req.query || {}
+        const b = req.body || {}
+        const uid = q.uid || b.uid || null
+        const userEmail = q.userEmail || b.userEmail || null
+
+        let svc = null
+        let filter = null
+        if (ObjectId.isValid(id)) {
+          svc = await servicesCollection.findOne({ _id: new ObjectId(id) })
+          filter = { _id: new ObjectId(id) }
+        }
+        if (!svc) {
+          svc = await servicesCollection.findOne({ id })
+          filter = { id }
+        }
+        if (!svc) return res.status(404).json({ error: 'Service not found' })
+
+        let ownerOk = true
+        if (svc.uid) ownerOk = uid && String(uid) === String(svc.uid)
+        if (!svc.uid && svc.providerEmail)
+          ownerOk =
+            userEmail &&
+            String(userEmail).toLowerCase() ===
+              String(svc.providerEmail).toLowerCase()
+        if (!ownerOk) return res.status(403).json({ error: 'Not allowed' })
+
+        const result = await servicesCollection.deleteOne(filter)
+        if (!result.deletedCount)
+          return res.status(404).json({ error: 'Service not found' })
+        res.status(200).json({ ok: true })
+      } catch {
+        res.status(500).json({ error: 'Failed to delete service' })
+      }
+    })
+
     app.post('/bookings', async (req, res) => {
       try {
         const b = req.body
