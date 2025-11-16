@@ -1,7 +1,6 @@
 const { MongoClient, ServerApiVersion } = require('mongodb')
 require('dotenv').config()
-const servicesData = require('./servicesData.json') // Make sure this file exists
-
+const servicesData = require('./servicesData.json') 
 const uri = process.env.MONGO_URI
 const client = new MongoClient(uri, {
   serverApi: {
