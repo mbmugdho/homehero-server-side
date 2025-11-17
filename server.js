@@ -73,11 +73,13 @@ async function run() {
     app.patch('/users/:uid', async (req, res) => {
       try {
         const { uid } = req.params
-        const { name, photoURL } = req.body || {}
-        const result = await usersCollection.updateOne(
-          { uid },
-          { $set: { name, photoURL, updatedAt: new Date() } }
-        )
+        const { name, photoURL, email, phone } = req.body || {}
+        const set = { updatedAt: new Date() }
+        if (name !== undefined) set.name = name
+        if (photoURL !== undefined) set.photoURL = photoURL
+        if (email !== undefined) set.email = email
+        if (phone !== undefined) set.phone = phone
+        const result = await usersCollection.updateOne({ uid }, { $set: set })
         if (!result.matchedCount)
           return res.status(404).json({ error: 'User not found' })
         res.status(200).json({ ok: true })
