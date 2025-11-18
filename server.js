@@ -384,4 +384,6 @@ async function run() {
   }
 }
 
-run().catch(console.dir)
+run().catch(err => {
+  console.error('Failed to start server:', err);
+});
